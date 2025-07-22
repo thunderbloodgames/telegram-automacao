@@ -111,7 +111,7 @@ export default function App() {
                         Sua automação agora roda <strong className="text-sky-400">24/7</strong> nos servidores da Vercel.
                     </p>
                     <ul className="list-disc list-inside text-sm text-slate-400 space-y-2">
-                        <li>Um novo post será buscado e publicado <strong className="font-semibold">a cada 4 horas</strong>, automaticamente.</li>
+                        <li>Um novo post será buscado e publicado <strong className="font-semibold">diariamente</strong>, automaticamente.</li>
                         <li>Você <strong className="underline">não</strong> precisa mais manter esta aba aberta.</li>
                         <li>Para ver os logs de atividade do robô, acesse a aba "Logs" no seu projeto Vercel.</li>
                     </ul>
