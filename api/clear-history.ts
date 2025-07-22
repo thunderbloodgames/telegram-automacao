@@ -1,10 +1,9 @@
 
-import type { NextRequest } from 'next/server';
 import { clearPostedUrls } from '../services/storageService';
 
 export const runtime = 'edge';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
     try {
         await clearPostedUrls();
         return new Response(
