@@ -1,0 +1,6 @@
+
+{
+  "name": "Gerador de Conteúdo para Telegram",
+  "description": "Um sistema automatizado para gerar e postar conteúdo otimizado para SEO em canais do Telegram 24/7, com encurtamento de links integrado para monetização. Executado na Vercel.",
+  "requestFramePermissions": []
+}
