@@ -39,8 +39,16 @@ export async function generatePostContent(topic: string): Promise<string> {
       contents: prompt,
     });
     
+    const responseText = response.text;
+
+    if (!responseText) {
+        // Log the full response for better debugging if this ever happens
+        console.error("A resposta do Gemini não continha texto. Resposta completa:", JSON.stringify(response, null, 2));
+        throw new Error("A resposta da IA estava vazia ou foi bloqueada por segurança. Tente novamente mais tarde.");
+    }
+
     // Ensure the response text doesn't have leading/trailing markdown backticks or "markdown" label
-    let text = response.text.trim();
+    let text = responseText.trim();
     if (text.startsWith('```')) {
         text = text.substring(text.indexOf('\n') + 1, text.lastIndexOf('```')).trim();
     }
