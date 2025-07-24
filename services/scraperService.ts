@@ -51,7 +51,7 @@ function extractArticleDetails(item: Parser.Item): ArticleDetails {
  * @param postedUrls Uma lista de URLs que já foram postadas.
  * @returns Um objeto ArticleDetails para um novo artigo, ou null se nenhum for encontrado.
  */
-export async function fetchNewArticle(feedUrl: string, postedUrls: string[]): Promise<ArticleDetails | null> {
+export async function fetchNewArticle(feedUrl: string, postedUrls:string[]): Promise<ArticleDetails | null> {
     if (!feedUrl) {
         throw new Error("A URL do Feed RSS é obrigatória.");
     }
@@ -74,6 +74,14 @@ export async function fetchNewArticle(feedUrl: string, postedUrls: string[]): Pr
             console.log("Nenhum artigo encontrado no feed RSS.");
             return null;
         }
+
+        // --- MODO DETETIVE: INÍCIO (A PARTE NOVA É ESTA) ---
+        // Vamos imprimir o primeiro artigo completo do feed para inspecionar sua estrutura.
+        // Isso nos mostrará todos os "cômodos" disponíveis.
+        console.log("--- ESTRUTURA DO ARTIGO (MODO DETETIVE) ---");
+        console.log(JSON.stringify(feed.items[0], null, 2));
+        console.log("---------------------------------------------");
+        // --- MODO DETETIVE: FIM ---
 
         // 3. Mapeia todos os artigos usando nossa função adaptada.
         const articles: ArticleDetails[] = feed.items
