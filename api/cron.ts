@@ -1,20 +1,23 @@
-
 import { generatePostContent } from '../services/geminiService.js';
 import { shortenUrl } from '../services/shortenerService.js';
 import { postMessage, postPhoto } from '../services/telegramService.js';
 import { fetchNewArticle } from '../services/scraperService.js';
 import { getPostedUrls, addPostedUrl } from '../services/storageService.js';
+import type { NextRequest } from 'next/server'; // Importação adicionada para o 'request'
 
 // Configura a função para rodar no Vercel Edge Runtime, que é mais rápido e tem APIs web padrão.
 export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
-    // Adiciona proteção básica para evitar execuções não autorizadas.
-    // Apenas requisições do Vercel Cron ou com um token secreto são permitidas.
-    const authHeader = request.headers.get('authorization');
-    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return new Response('Unauthorized', { status: 401 });
-    }
+    // --- ALTERAÇÃO TEMPORÁRIA: INÍCIO ---
+    // O "guarda de segurança" foi temporariamente desativado para podermos fazer o teste do "Modo Detetive".
+    // Depois do teste, vamos reativar este código.
+    //
+    // const authHeader = request.headers.get('authorization');
+    // if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    //     return new Response('Unauthorized', { status: 401 });
+    // }
+    // --- ALTERAÇÃO TEMPORÁRIA: FIM ---
     
     console.log("Iniciando novo ciclo de automação...");
 
