@@ -1,4 +1,6 @@
+import Parser from 'rss-parser';
 
+// A interface continua a mesma, pois nosso objetivo final não mudou.
 interface ArticleDetails {
     title: string;
     url: string;
@@ -6,42 +8,35 @@ interface ArticleDetails {
 }
 
 /**
- * Extrai detalhes do artigo de um item de feed RSS.
- * Procura de forma inteligente pela imagem em destaque em várias tags comuns.
- * @param item O elemento XML <item>.
+ * REESCRITO: Extrai detalhes do artigo de um item processado pelo rss-parser.
+ * A lógica inteligente para encontrar a imagem foi preservada e adaptada.
+ * @param item O objeto 'item' fornecido pela biblioteca rss-parser.
  * @returns Um objeto com detalhes do artigo.
  */
-function extractArticleDetails(item: Element): ArticleDetails {
-    const title = item.querySelector('title')?.textContent?.trim() || 'Título não encontrado';
-    const url = item.querySelector('link')?.textContent?.trim() || '';
-
+function extractArticleDetails(item: Parser.Item): ArticleDetails {
+    const title = item.title || 'Título não encontrado';
+    const url = item.link || '';
     let imageUrl: string | undefined;
 
-    // 1. Procura em <media:content> (mais comum para imagens)
-    // A barra invertida é necessária para escapar o ':' no seletor
-    const mediaContent = item.querySelector('media\\:content, content');
-    if (mediaContent?.getAttribute('url') && mediaContent.getAttribute('medium') === 'image') {
-        imageUrl = mediaContent.getAttribute('url')!;
+    // 1. Procura no campo 'enclosure', que o rss-parser já processa para nós.
+    if (item.enclosure?.url && item.enclosure.type?.startsWith('image/')) {
+        imageUrl = item.enclosure.url;
     }
 
-    // 2. Procura em <enclosure> (outra tag comum para mídia)
-    if (!imageUrl) {
-        const enclosure = item.querySelector('enclosure');
-        if (enclosure?.getAttribute('url') && enclosure.getAttribute('type')?.startsWith('image/')) {
-            imageUrl = enclosure.getAttribute('url')!;
-        }
+    // 2. Procura por campos de mídia, como <media:content>
+    // Acessamos com colchetes caso o nome contenha ':'
+    if (!imageUrl && item['media:content']?.$?.url) {
+        imageUrl = item['media:content'].$.url;
     }
-
-    // 3. Procura dentro de <description> ou <content:encoded> por uma tag <img> como último recurso
+    
+    // 3. Como último recurso, procura por uma tag <img> dentro do conteúdo HTML.
     if (!imageUrl) {
-        const descriptionCData = item.querySelector('description')?.textContent;
-        // Para <content:encoded>
-        const encodedContentCData = item.querySelector('content\\:encoded, encoded')?.textContent; 
-        const combinedContent = `${descriptionCData || ''} ${encodedContentCData || ''}`;
-        
-        const match = combinedContent.match(/<img[^>]+src="([^">]+)"/);
+        // O campo 'content' do rss-parser geralmente tem o HTML completo.
+        const contentHtml = item.content || '';
+        const match = contentHtml.match(/<img[^>]+src="([^">]+)"/);
         if (match && match[1]) {
-            imageUrl = match[1];
+            // Remove possíveis quebras de linha e espaços extras da URL da imagem
+            imageUrl = match[1].replace(/(\r\n|\n|\r)/gm, "").trim();
         }
     }
 
@@ -50,7 +45,8 @@ function extractArticleDetails(item: Element): ArticleDetails {
 
 
 /**
- * Busca um novo artigo que ainda não foi publicado de um feed RSS fornecido.
+ * REESCRITO: Busca um novo artigo usando a biblioteca rss-parser.
+ * A lógica de verificar URLs já postadas foi mantida.
  * @param feedUrl A URL do feed RSS.
  * @param postedUrls Uma lista de URLs que já foram postadas.
  * @returns Um objeto ArticleDetails para um novo artigo, ou null se nenhum for encontrado.
@@ -60,44 +56,44 @@ export async function fetchNewArticle(feedUrl: string, postedUrls: string[]): Pr
         throw new Error("A URL do Feed RSS é obrigatória.");
     }
     
-    const response = await fetch(feedUrl, {
-        headers: {
-            'User-Agent': 'TelegramContentBot/1.0' // Alguns feeds exigem um User-Agent
+    // 1. Criamos uma instância do nosso novo parser.
+    const parser = new Parser({
+        // Adicionamos cabeçalhos personalizados aqui, como o User-Agent.
+        requestOptions: {
+            headers: {
+                'User-Agent': 'TelegramContentBot/1.0'
+            }
         }
     });
-    if (!response.ok) {
-        throw new Error(`Falha ao buscar o feed RSS. Status: ${response.status}`);
-    }
-    const feedXml = await response.text();
 
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(feedXml, "text/xml");
+    try {
+        // 2. O parser busca e processa o feed. Isso substitui 'fetch' e 'DOMParser'.
+        const feed = await parser.parseURL(feedUrl);
 
-    const errorNode = doc.querySelector("parsererror");
-    if (errorNode) {
-        console.error("Erro ao analisar o feed RSS:", errorNode.textContent);
-        throw new Error("Não foi possível processar o feed RSS. O formato pode estar inválido.");
-    }
+        if (!feed.items || feed.items.length === 0) {
+            console.log("Nenhum artigo encontrado no feed RSS.");
+            return null;
+        }
 
-    const items = Array.from(doc.querySelectorAll("item"));
+        // 3. Mapeia todos os artigos usando nossa função adaptada.
+        const articles: ArticleDetails[] = feed.items
+            .map(extractArticleDetails)
+            .filter(article => article.url); // Garante que artigos sem URL sejam descartados.
 
-    if (items.length === 0) {
-        // Não é um erro, o feed pode estar vazio legitimamente.
-        console.log("Nenhum artigo encontrado no feed RSS.");
-        return null;
-    }
-
-    // Mapeia todos os artigos do feed para o nosso formato
-    const articles: ArticleDetails[] = items
-        .map(extractArticleDetails)
-        .filter(article => article.url); // Garante que artigos sem URL sejam descartados
-
-    // Encontra o primeiro artigo da lista (o mais recente) que ainda não foi postado
-    const newArticle = articles.find(article => !postedUrls.includes(article.url));
+        // 4. A lógica para encontrar um artigo que ainda não foi postado continua a mesma.
+        const newArticle = articles.find(article => !postedUrls.includes(article.url));
     
-    if (!newArticle) {
-        return null; // Nenhum artigo novo encontrado
-    }
+        if (!newArticle) {
+            console.log("Nenhum artigo novo para postar.");
+            return null;
+        }
 
-    return newArticle;
+        console.log(`Novo artigo encontrado: ${newArticle.title}`);
+        return newArticle;
+
+    } catch (error) {
+        // A biblioteca rss-parser vai gerar um erro se o feed for inválido ou inacessível.
+        console.error("Erro ao processar o feed RSS:", error);
+        throw new Error("Não foi possível processar o feed RSS. Verifique a URL e o formato do feed.");
+    }
 }
