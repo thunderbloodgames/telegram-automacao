@@ -9,15 +9,12 @@ import type { NextRequest } from 'next/server'; // Importação adicionada para 
 export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
-    // --- ALTERAÇÃO TEMPORÁRIA: INÍCIO ---
-    // O "guarda de segurança" foi temporariamente desativado para podermos fazer o teste do "Modo Detetive".
-    // Depois do teste, vamos reativar este código.
-    //
-    // const authHeader = request.headers.get('authorization');
-    // if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    //     return new Response('Unauthorized', { status: 401 });
-    // }
-    // --- ALTERAÇÃO TEMPORÁRIA: FIM ---
+// Adiciona proteção básica para evitar execuções não autorizadas.
+// Apenas requisições do Vercel Cron ou com um token secreto são permitidas.
+const authHeader = request.headers.get('authorization');
+if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return new Response('Unauthorized', { status: 401 });
+}
     
     console.log("Iniciando novo ciclo de automação...");
 
