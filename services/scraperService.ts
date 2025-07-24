@@ -1,36 +1,36 @@
 import Parser from 'rss-parser';
 
-// A interface continua a mesma, pois nosso objetivo final não mudou.
+// "Dicionário" personalizado para o TypeScript
+type CustomFeedItem = Parser.Item & {
+  'content:encoded'?: string;
+  'media:content'?: {
+    '$': {
+      url: string;
+    }
+  };
+};
+
 interface ArticleDetails {
     title: string;
     url: string;
     imageUrl?: string;
 }
 
-/**
- * VERSÃO FINAL: Extrai detalhes do artigo de forma ainda mais inteligente.
- */
-function extractArticleDetails(item: Parser.Item): ArticleDetails {
+function extractArticleDetails(item: CustomFeedItem): ArticleDetails {
     const title = item.title || 'Título não encontrado';
     const url = item.link || '';
     let imageUrl: string | undefined;
 
-    // 1. Procura no campo 'enclosure'.
     if (item.enclosure?.url && item.enclosure.type?.startsWith('image/')) {
         imageUrl = item.enclosure.url;
     }
 
-    // 2. Procura por campos de mídia, como <media:content>.
     if (!imageUrl && item['media:content']?.$?.url) {
         imageUrl = item['media:content'].$.url;
     }
     
-    // 3. Como último recurso, procura por uma tag <img> dentro do conteúdo HTML.
     if (!imageUrl) {
-        // --- ESTA É A LINHA QUE CORRIGE O PROBLEMA ---
-        // Agora, ele prioriza o 'content:encoded' (que tem o HTML completo) antes de usar o 'content'.
         const contentHtml = item['content:encoded'] || item.content || '';
-        
         const match = contentHtml.match(/<img[^>]+src="([^">]+)"/);
         if (match && match[1]) {
             imageUrl = match[1].replace(/(\r\n|\n|\r)/gm, "").trim();
@@ -40,16 +40,12 @@ function extractArticleDetails(item: Parser.Item): ArticleDetails {
     return { title, url, imageUrl };
 }
 
-
-/**
- * VERSÃO FINAL: Código limpo e funcional.
- */
 export async function fetchNewArticle(feedUrl: string, postedUrls:string[]): Promise<ArticleDetails | null> {
     if (!feedUrl) {
         throw new Error("A URL do Feed RSS é obrigatória.");
     }
     
-    const parser = new Parser({
+    const parser = new Parser<any, CustomFeedItem>({
         requestOptions: {
             headers: {
                 'User-Agent': 'TelegramContentBot/1.0'
