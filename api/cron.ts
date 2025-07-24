@@ -1,10 +1,9 @@
 
-import type { NextRequest } from 'next/server';
-import { generatePostContent } from '../services/geminiService';
-import { shortenUrl } from '../services/shortenerService';
-import { postMessage, postPhoto } from '../services/telegramService';
-import { fetchNewArticle } from '../services/scraperService';
-import { getPostedUrls, addPostedUrl } from '../services/storageService';
+import { generatePostContent } from '../services/geminiService.js';
+import { shortenUrl } from '../services/shortenerService.js';
+import { postMessage, postPhoto } from '../services/telegramService.js';
+import { fetchNewArticle } from '../services/scraperService.js';
+import { getPostedUrls, addPostedUrl } from '../services/storageService.js';
 
 // Configura a função para rodar no Vercel Edge Runtime, que é mais rápido e tem APIs web padrão.
 export const runtime = 'edge';
